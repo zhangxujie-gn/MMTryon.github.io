@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+    // 确保页面加载时滚动到顶部
+    if (history.scrollRestoration) {
+      history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+  </script>
   <meta charset="utf-8">
   <meta name="description" content="MMTryon: Multi-Modal Multi-Reference Control for High-Quality Fashion Generation">
   <meta name="keywords" content="Virtual Try-On, Multi-Modal, Diffusion Model, Fashion AI">
@@ -1012,10 +1019,18 @@
 
   // Initialize
   async function init() {
+    // 确保页面从顶部开始
+    window.scrollTo(0, 0);
+    
     await loadPromptsData();
     generateThumbnails();
     loadSample(0);
   }
+  
+  // 页面加载完成后滚动到顶部
+  window.addEventListener('load', () => {
+    window.scrollTo(0, 0);
+  });
   
   init();
 </script>
