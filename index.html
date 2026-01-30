@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="MMTryon: Multi-Modal Multi-Reference Control for High-Quality Fashion Generation">
+  <meta name="keywords" content="Virtual Try-On, Multi-Modal, Diffusion Model, Fashion AI">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MMTryon - Multi-Modal Virtual Try-On</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-card: #1a1a24;
+      --accent: #c9a87c;
+      --accent-light: #e8d5b7;
+      --accent-glow: rgba(201, 168, 124, 0.3);
+      --text-primary: #f5f5f7;
+      --text-secondary: #a1a1aa;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Source Sans 3', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Background Pattern */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(ellipse at 20% 20%, rgba(201, 168, 124, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(201, 168, 124, 0.03) 0%, transparent 50%),
+        linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* Hero Section */
+    .hero {
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem 2rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 200px;
+      background: linear-gradient(to bottom, transparent, var(--bg-primary));
+      pointer-events: none;
+    }
+
+    .title-badge {
+      display: inline-block;
+      padding: 0.65rem 2rem;
+      background: linear-gradient(135deg, var(--accent) 0%, #8b7355 100%);
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--bg-primary);
+      margin-bottom: 1.5rem;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    .main-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(3.5rem, 8vw, 6rem);
+      font-weight: 700;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      animation: fadeInUp 0.8s ease-out 0.1s both;
+    }
+
+    .main-title span {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 50%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 1.5rem;
+      color: var(--text-secondary);
+      max-width: 800px;
+      margin-bottom: 2.5rem;
+      animation: fadeInUp 0.8s ease-out 0.2s both;
+    }
+
+    .authors {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+      animation: fadeInUp 0.8s ease-out 0.3s both;
+      max-width: 900px;
+      line-height: 1.8;
+    }
+
+    .authors strong {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .affiliations {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      opacity: 0.8;
+      margin-bottom: 2.5rem;
+      animation: fadeInUp 0.8s ease-out 0.4s both;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeInUp 0.8s ease-out 0.5s both;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 1rem 2.5rem;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, #8b7355 100%);
+      color: var(--bg-primary);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px var(--accent-glow);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--accent);
+    }
+
+    /* Section Styles */
+    .section {
+      padding: 6rem 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .section-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .section-title span {
+      color: var(--accent);
+    }
+
+    .section-desc {
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Teaser */
+    .teaser-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
+    .teaser-image {
+      width: 100%;
+      height: auto;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px var(--accent-glow);
+      border: 1px solid var(--border);
+    }
+
+    /* Framework */
+    .framework-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
+    .framework-image {
+      width: 100%;
+      height: auto;
+      border-radius: 20px;
+      background: #fff;
+      padding: 1.5rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Figure Caption */
+    .figure-caption {
+      margin-top: 1.5rem;
+      padding: 1.25rem 1.5rem;
+      background: var(--bg-card);
+      border-radius: 12px;
+      border-left: 3px solid var(--accent);
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      text-align: left;
+    }
+
+    .figure-caption strong {
+      color: var(--accent-light);
+    }
+
+    /* Abstract */
+    .abstract {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 3rem;
+      max-width: 900px;
+      margin: 0 auto 4rem;
+    }
+
+    .abstract p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      line-height: 1.8;
+      margin-bottom: 1.5rem;
+    }
+
+    .abstract p:last-child {
+      margin-bottom: 0;
+    }
+
+    .feature-list {
+      list-style: none;
+      margin: 1.5rem 0;
+      padding: 0;
+    }
+
+    .feature-list li {
+      position: relative;
+      padding: 1rem 1rem 1rem 2rem;
+      margin-bottom: 1rem;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      border-left: 3px solid var(--accent);
+      color: var(--text-secondary);
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    .feature-list li strong {
+      color: var(--accent-light);
+    }
+
+    .feature-list li::before {
+      content: '→';
+      position: absolute;
+      left: 0.75rem;
+      color: var(--accent);
+      font-weight: bold;
+    }
+
+    /* Gallery Section */
+    .gallery-section {
+      background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%);
+      padding: 6rem 0;
+    }
+
+    .gallery-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* Navigation */
+    .gallery-nav {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      font-size: 1.25rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-btn:hover {
+      background: var(--accent);
+      color: var(--bg-primary);
+      transform: scale(1.1);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .sample-indicator {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      color: var(--accent);
+      min-width: 120px;
+      text-align: center;
+    }
+
+    .sample-indicator span {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    /* Slider */
+    .slider-container {
+      margin-bottom: 3rem;
+      padding: 0 1rem;
+    }
+
+    .slider-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      max-width: 400px;
+      height: 4px;
+      background: var(--bg-card);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Image Grid */
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    @media (max-width: 968px) {
+      .image-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+    }
+
+    .image-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .image-card:hover {
+      transform: translateY(-8px);
+      border-color: var(--accent);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 40px var(--accent-glow);
+    }
+
+    .card-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .icon-model { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+    .icon-cloth { background: linear-gradient(135deg, #ec4899, #f43f5e); }
+    .icon-result { background: linear-gradient(135deg, var(--accent), #8b7355); }
+
+    .card-title {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .card-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .image-wrapper {
+      position: relative;
+      aspect-ratio: 3/4;
+      background: var(--bg-secondary);
+      overflow: hidden;
+    }
+
+    .image-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .image-card:hover .image-wrapper img {
+      transform: scale(1.05);
+    }
+
+    .image-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-secondary);
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    /* Prompt Box */
+    .prompt-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .prompt-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .prompt-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+
+    .prompt-label {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .prompt-text {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      line-height: 1.8;
+      padding: 1.5rem;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      border-left: 3px solid var(--accent);
+    }
+
+    /* Thumbnail Strip */
+    .thumbnail-strip {
+      margin-top: 4rem;
+      padding-top: 3rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .thumbnail-title {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .thumbnail-scroll {
+      display: flex;
+      gap: 0.75rem;
+      overflow-x: auto;
+      padding: 1rem 0;
+      scroll-snap-type: x mandatory;
+    }
+
+    .thumbnail-scroll::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .thumbnail-scroll::-webkit-scrollbar-track {
+      background: var(--bg-card);
+      border-radius: 3px;
+    }
+
+    .thumbnail-scroll::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 3px;
+    }
+
+    .thumbnail {
+      flex-shrink: 0;
+      width: 80px;
+      height: 100px;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+      scroll-snap-align: start;
+    }
+
+    .thumbnail:hover {
+      border-color: var(--accent);
+      transform: scale(1.05);
+    }
+
+    .thumbnail.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 3rem 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Scroll indicator */
+    .scroll-indicator {
+      position: absolute;
+      bottom: 4rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      animation: fadeInUp 0.8s ease-out 0.6s both;
+      z-index: 10;
+    }
+
+    .scroll-indicator span {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .scroll-arrow {
+      width: 24px;
+      height: 24px;
+      border-right: 2px solid var(--accent);
+      border-bottom: 2px solid var(--accent);
+      transform: rotate(45deg);
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: rotate(45deg) translateY(0); }
+      40% { transform: rotate(45deg) translateY(6px); }
+      60% { transform: rotate(45deg) translateY(3px); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Hero Section -->
+<section class="hero">
+  <div class="title-badge">IEEE TPAMI Submission</div>
+  <h1 class="main-title"><span>MMTryon</span></h1>
+  <p class="subtitle">Multi-Modal Multi-Reference Control for High-Quality Fashion Generation</p>
+  
+  <p class="authors">
+    <strong>Xujie Zhang</strong><sup>*1</sup>, 
+    <strong>Ente Lin</strong><sup>*2</sup>, 
+    <strong>Michael Kampffmeyer</strong><sup>3</sup>, 
+    <strong>Zhenyu Xie</strong><sup>1</sup>,
+    <strong>Jiang Li</strong><sup>4</sup>,<br>
+    <strong>Ting Liu</strong><sup>4</sup>,
+    <strong>Xiaochao Qu</strong><sup>4</sup>,
+    <strong>Luoqi Liu</strong><sup>4</sup>,
+    <strong>Xiaodan Liang</strong><sup>†1</sup>
+  </p>
+  <p class="affiliations">
+    <sup>1</sup>Sun Yat-sen University &nbsp;·&nbsp; 
+    <sup>2</sup>Tsinghua University &nbsp;·&nbsp; 
+    <sup>3</sup>UiT The Arctic University of Norway &nbsp;·&nbsp;
+    <sup>4</sup>MT Lab<br>
+    <span style="font-size: 0.8rem; opacity: 0.8;">* Equal contribution &nbsp;&nbsp; † Corresponding author</span>
+  </p>
+
+  <div class="btn-group">
+    <a href="#" class="btn btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Paper
+    </a>
+    <a href="https://github.com/your-username/MMTryon" class="btn btn-secondary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+      Code
+    </a>
+    <a href="#gallery" class="btn btn-secondary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Gallery
+    </a>
+  </div>
+
+  <div class="scroll-indicator">
+    <span>Scroll</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- Teaser Section -->
+<section class="section" id="teaser">
+  <div class="section-header">
+    <h2 class="section-title">Visual <span>Teaser</span></h2>
+  </div>
+  <div class="teaser-container">
+    <img src="teaser.png" alt="MMTryon Teaser" class="teaser-image">
+    <p class="figure-caption">
+      <strong>Figure 1.</strong> MMTryon can follow complex instructions to produce high-quality results in multi-garment/accessories compositional try-on scenarios. 
+      Besides, MMTryon can also generate high-fidelity results for any in-the-wild scenario.
+    </p>
+  </div>
+</section>
+
+<!-- Abstract Section -->
+<section class="section">
+  <div class="section-header">
+    <h2 class="section-title">About <span>MMTryon</span></h2>
+  </div>
+  <div class="abstract">
+    <p>
+      This paper introduces <strong>MMTryon</strong>, a multi-modal multi-reference VIrtual Try-ON (VITON) framework, 
+      which can generate high-quality compositional try-on results by taking a text instruction and multiple garment images as inputs. 
+      Our MMTryon addresses three problems overlooked in prior literature:
+    </p>
+    <ul class="feature-list">
+      <li><strong>Support of multiple try-on items.</strong> Existing methods are commonly designed for single-item try-on tasks (e.g., upper/lower garments, dresses).</li>
+      <li><strong>Specification of dressing style.</strong> Existing methods are unable to customize dressing styles based on instructions (e.g., zipped/unzipped, tuck-in/tuck-out, etc.)</li>
+      <li><strong>Segmentation Dependency.</strong> They further heavily rely on category-specific segmentation models to identify the replacement regions, with segmentation errors directly leading to significant artifacts in the try-on results.</li>
+    </ul>
+    <p>
+      To address the first two issues, our MMTryon introduces a novel <strong>multi-modality and multi-reference attention mechanism</strong> 
+      to combine the garment information from reference images and dressing-style information from text instructions. 
+      Besides, to remove the segmentation dependency, MMTryon uses a <strong>parsing-free garment encoder</strong> and leverages 
+      a novel <strong>scalable data generation pipeline</strong> to convert existing VITON datasets to a form that allows MMTryon 
+      to be trained without requiring any explicit segmentation.
+    </p>
+    <p>
+      Extensive experiments on high-resolution benchmarks and in-the-wild test sets demonstrate MMTryon's superiority over 
+      existing SOTA methods both qualitatively and quantitatively. MMTryon's impressive performance on multi-item and 
+      style-controllable virtual try-on scenarios and its ability to try on any outfit in a large variety of scenarios 
+      from any source image, opens up a new avenue for future investigation in the fashion community.
+    </p>
+  </div>
+</section>
+
+<!-- Framework Section -->
+<section class="section" id="framework">
+  <div class="section-header">
+    <h2 class="section-title">Method <span>Framework</span></h2>
+  </div>
+  <div class="framework-container">
+    <img src="framework.png" alt="MMTryon Framework" class="framework-image">
+    <p class="figure-caption">
+      <strong>Figure 2.</strong> Overview of the proposed MMTryon framework. The instruction prompt and garment images are combined to obtain a multi-modal instruct embedding, replacing the original textual condition. Each garment image together with the corresponding text span are further processed by the garment encoder to obtain reference features, which, along with target features, undergo multi-reference attention to ensure detailed texture transfer.
+    </p>
+  </div>
+</section>
+
+<!-- Gallery Section -->
+<section class="gallery-section" id="gallery">
+  <div class="gallery-container">
+    <div class="section-header">
+      <h2 class="section-title">Visual <span>Gallery</span></h2>
+      <p class="section-desc">Explore our multi-modal virtual try-on results. Navigate through 97 samples showcasing diverse fashion combinations.</p>
+    </div>
+
+    <!-- Navigation -->
+    <div class="gallery-nav">
+      <button class="nav-btn" id="prevBtn" aria-label="Previous">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="sample-indicator">
+        <span id="currentSample">1</span> <span>/ 97</span>
+      </div>
+      <button class="nav-btn" id="nextBtn" aria-label="Next">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <!-- Slider -->
+    <div class="slider-container">
+      <div class="slider-wrapper">
+        <input type="range" class="slider" id="sampleSlider" min="0" max="96" value="0">
+      </div>
+    </div>
+
+    <!-- Image Grid -->
+    <div class="image-grid">
+      <!-- Model Card -->
+      <div class="image-card">
+        <div class="card-header">
+          <div class="card-icon icon-model">👤</div>
+          <div>
+            <div class="card-title">Source Model</div>
+            <div class="card-subtitle">Original appearance</div>
+          </div>
+        </div>
+        <div class="image-wrapper">
+          <div class="image-loading" id="modelLoading"><div class="spinner"></div></div>
+          <img id="modelImg" src="" alt="Source Model" onload="this.previousElementSibling.style.display='none'">
+        </div>
+      </div>
+
+      <!-- Cloth Card -->
+      <div class="image-card">
+        <div class="card-header">
+          <div class="card-icon icon-cloth">👗</div>
+          <div>
+            <div class="card-title">Reference Garments</div>
+            <div class="card-subtitle">Target clothing items</div>
+          </div>
+        </div>
+        <div class="image-wrapper">
+          <div class="image-loading" id="clothLoading"><div class="spinner"></div></div>
+          <img id="clothImg" src="" alt="Reference Garments" onload="this.previousElementSibling.style.display='none'">
+        </div>
+      </div>
+
+      <!-- Result Card -->
+      <div class="image-card">
+        <div class="card-header">
+          <div class="card-icon icon-result">✨</div>
+          <div>
+            <div class="card-title">Try-On Result</div>
+            <div class="card-subtitle">Generated by MMTryon</div>
+    </div>
+  </div>
+        <div class="image-wrapper">
+          <div class="image-loading" id="tryonLoading"><div class="spinner"></div></div>
+          <img id="tryonImg" src="" alt="Try-On Result" onload="this.previousElementSibling.style.display='none'">
+        </div>
+      </div>
+    </div>
+    
+    <!-- Prompt Box -->
+    <div class="prompt-container">
+      <div class="prompt-header">
+        <div class="prompt-icon">📝</div>
+        <div class="prompt-label">Multi-Modal Instruction</div>
+      </div>
+      <div class="prompt-text" id="promptText">
+        Loading instruction...
+      </div>
+    </div>
+
+    <!-- Thumbnail Strip -->
+    <div class="thumbnail-strip">
+      <div class="thumbnail-title">Quick Navigation</div>
+      <div class="thumbnail-scroll" id="thumbnailStrip">
+        <!-- Thumbnails will be generated by JS -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>© 2025 MMTryon Project Team · <a href="https://www.sysu.edu.cn/" target="_blank">Sun Yat-sen University</a> · <a href="https://en.uit.no/" target="_blank">UiT</a> · <a href="https://www.tsinghua.edu.cn/" target="_blank">Tsinghua University</a></p>
+  <p style="margin-top: 0.5rem; font-size: 0.8rem;">Contact: xdliang328@gmail.com</p>
+</footer>
+
+<script>
+  // Configuration
+  const TOTAL_SAMPLES = 97;
+  let currentIndex = 0;
+  let promptsData = {};
+
+  // DOM Elements
+  const modelImg = document.getElementById('modelImg');
+  const clothImg = document.getElementById('clothImg');
+  const tryonImg = document.getElementById('tryonImg');
+  const promptText = document.getElementById('promptText');
+  const currentSampleEl = document.getElementById('currentSample');
+  const slider = document.getElementById('sampleSlider');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const thumbnailStrip = document.getElementById('thumbnailStrip');
+
+  // Load English prompts from JSON file
+  async function loadPromptsData() {
+    try {
+      const response = await fetch('prompts_en.json');
+      promptsData = await response.json();
+    } catch (error) {
+      console.error('Failed to load prompts:', error);
+    }
+  }
+
+  // Load sample data
+  async function loadSample(index) {
+    // Show loading spinners
+    document.getElementById('modelLoading').style.display = 'flex';
+    document.getElementById('clothLoading').style.display = 'flex';
+    document.getElementById('tryonLoading').style.display = 'flex';
+
+    // Update images
+    modelImg.src = `result/model/${index}.png`;
+    clothImg.src = `result/cloth/${index}.png`;
+    tryonImg.src = `result/tryon/${index}.png`;
+
+    // Update UI
+    currentSampleEl.textContent = index + 1;
+    slider.value = index;
+    updateNavButtons();
+    updateThumbnails();
+
+    // Load prompt from pre-translated data
+    promptText.textContent = promptsData[index] || 'Instruction not available.';
+  }
+
+  // Update navigation buttons
+  function updateNavButtons() {
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex === TOTAL_SAMPLES - 1;
+  }
+
+  // Update thumbnail active state
+  function updateThumbnails() {
+    document.querySelectorAll('.thumbnail').forEach((thumb, i) => {
+      thumb.classList.toggle('active', i === currentIndex);
+    });
+    
+    // Scroll active thumbnail into view
+    const activeThumbnail = document.querySelector('.thumbnail.active');
+    if (activeThumbnail) {
+      activeThumbnail.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }
+
+  // Generate thumbnails
+  function generateThumbnails() {
+    thumbnailStrip.innerHTML = '';
+    for (let i = 0; i < TOTAL_SAMPLES; i++) {
+      const thumb = document.createElement('div');
+      thumb.className = `thumbnail${i === 0 ? ' active' : ''}`;
+      thumb.innerHTML = `<img src="result/tryon/${i}.png" alt="Sample ${i + 1}" loading="lazy">`;
+      thumb.addEventListener('click', () => {
+        currentIndex = i;
+        loadSample(currentIndex);
+      });
+      thumbnailStrip.appendChild(thumb);
+    }
+  }
+
+  // Event listeners
+  prevBtn.addEventListener('click', () => {
+    if (currentIndex > 0) {
+      currentIndex--;
+      loadSample(currentIndex);
+    }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (currentIndex < TOTAL_SAMPLES - 1) {
+      currentIndex++;
+      loadSample(currentIndex);
+    }
+  });
+
+  slider.addEventListener('input', (e) => {
+    currentIndex = parseInt(e.target.value);
+    loadSample(currentIndex);
+  });
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' && currentIndex > 0) {
+      currentIndex--;
+      loadSample(currentIndex);
+    } else if (e.key === 'ArrowRight' && currentIndex < TOTAL_SAMPLES - 1) {
+      currentIndex++;
+      loadSample(currentIndex);
+    }
+  });
+
+  // Initialize
+  async function init() {
+    await loadPromptsData();
+    generateThumbnails();
+    loadSample(0);
+  }
+  
+  init();
+</script>
+
+</body>
+</html>

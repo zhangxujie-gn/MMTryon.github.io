@@ -1,0 +1,8 @@
+# Large files
+result.tar.gz
+
+# PDF source files (already converted to PNG)
+*.pdf
+
+# macOS
+.DS_Store
