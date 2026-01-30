@@ -702,7 +702,7 @@
       <div class="gallery-content">
         <!-- Sample Counter -->
         <div class="sample-counter">
-          <span id="currentSample">1</span> / 97
+          <span id="currentSample">1</span> / 96
         </div>
 
         <!-- Compact Image Grid -->
@@ -752,9 +752,10 @@
 </footer>
 
 <script>
-  // Configuration
-  const TOTAL_SAMPLES = 97;
-  let currentIndex = 0;
+  // Configuration - valid sample indices (skip 18)
+  const SAMPLE_INDICES = [...Array(97).keys()].filter(i => i !== 18);
+  const TOTAL_SAMPLES = SAMPLE_INDICES.length; // 96
+  let currentPos = 0; // position in SAMPLE_INDICES array
   let promptsData = {};
 
   // DOM Elements
@@ -777,7 +778,9 @@
   }
 
   // Load sample data
-  function loadSample(index) {
+  function loadSample(pos) {
+    const index = SAMPLE_INDICES[pos];
+    
     // Show loading spinners
     document.getElementById('modelLoading').style.display = 'flex';
     document.getElementById('clothLoading').style.display = 'flex';
@@ -789,7 +792,7 @@
     tryonImg.src = `result/tryon/${index}.png`;
 
     // Update UI
-    currentSampleEl.textContent = index + 1;
+    currentSampleEl.textContent = pos + 1;
     updateNavButtons();
 
     // Load prompt from pre-translated data
@@ -798,23 +801,23 @@
 
   // Update navigation buttons
   function updateNavButtons() {
-    prevBtn.disabled = currentIndex === 0;
-    nextBtn.disabled = currentIndex === TOTAL_SAMPLES - 1;
+    prevBtn.disabled = currentPos === 0;
+    nextBtn.disabled = currentPos === TOTAL_SAMPLES - 1;
   }
 
   // Navigate to previous sample
   function goToPrev() {
-    if (currentIndex > 0) {
-      currentIndex--;
-      loadSample(currentIndex);
+    if (currentPos > 0) {
+      currentPos--;
+      loadSample(currentPos);
     }
   }
 
   // Navigate to next sample
   function goToNext() {
-    if (currentIndex < TOTAL_SAMPLES - 1) {
-      currentIndex++;
-      loadSample(currentIndex);
+    if (currentPos < TOTAL_SAMPLES - 1) {
+      currentPos++;
+      loadSample(currentPos);
     }
   }
 
