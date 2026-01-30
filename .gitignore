@@ -4,5 +4,8 @@ result.tar.gz
 # PDF source files (already converted to PNG)
 *.pdf
 
+# Chinese prompts (using prompts_en.json instead)
+result/prompt/
+
 # macOS
 .DS_Store
